@@ -74,6 +74,54 @@ async function fetchArbeitnow() {
   }
 }
 
+// --- Source: Jobicy (public JSON API, worldwide remote listings, no key required) ---
+async function fetchJobicy() {
+  try {
+    const res = await fetch("https://jobicy.com/api/v2/remote-jobs?count=100");
+    const data = await res.json();
+    return (data.jobs || []).map((j) => ({
+      id: `jobicy-${j.id}`,
+      title: j.jobTitle,
+      company: j.companyName || "Unknown",
+      url: j.url,
+      text: `${j.jobTitle} ${j.companyName} ${j.jobIndustry || ""} ${j.jobType || ""} ${j.jobGeo || ""}`,
+      source: "Jobicy",
+    }));
+  } catch (err) {
+    console.error("Jobicy fetch failed:", err.message);
+    return [];
+  }
+}
+
+// --- Source: WeWorkRemotely, Design category (public RSS feed, no key required) ---
+async function fetchWeWorkRemotelyDesign() {
+  try {
+    const res = await fetch("https://weworkremotely.com/categories/remote-design-jobs.rss");
+    const xml = await res.text();
+    const items = xml.split("<item>").slice(1);
+    return items.map((item) => {
+      const title = (item.match(/<title>([\s\S]*?)<\/title>/) || [, "Untitled"])[1]
+        .replace("<![CDATA[", "")
+        .replace("]]>", "")
+        .trim();
+      const link = (item.match(/<link>([\s\S]*?)<\/link>/) || [, ""])[1].trim();
+      // WWR titles are usually formatted "Company: Job Title"
+      const [company, ...rest] = title.split(":");
+      return {
+        id: `wwr-${link}`,
+        title: rest.join(":").trim() || title,
+        company: rest.length ? company.trim() : "Unknown",
+        url: link,
+        text: title,
+        source: "WeWorkRemotely",
+      };
+    });
+  } catch (err) {
+    console.error("WeWorkRemotely fetch failed:", err.message);
+    return [];
+  }
+}
+
 async function sendEmail(subject, htmlBody) {
   const cfg = config.notifications.email;
   if (!cfg.enabled) return;
@@ -125,7 +173,12 @@ async function sendWhatsApp(text) {
 
 async function main() {
   const seen = loadSeen();
-  const allJobs = [...(await fetchRemoteOK()), ...(await fetchArbeitnow())];
+  const allJobs = [
+    ...(await fetchRemoteOK()),
+    ...(await fetchArbeitnow()),
+    ...(await fetchJobicy()),
+    ...(await fetchWeWorkRemotelyDesign()),
+  ];
 
   const matched = allJobs.filter((j) => matchesKeywords(j.text));
   const newJobs = matched.filter((j) => !seen[j.id]);
