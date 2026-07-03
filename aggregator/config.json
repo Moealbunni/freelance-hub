@@ -14,11 +14,11 @@
     "email": {
       "enabled": true,
       "fromAddress": "onboarding@resend.dev",
-      "toAddress": "you@example.com"
+      "toAddress": "moe.albunni@gmail.com"
     },
     "whatsapp": {
       "enabled": true,
-      "phone": "971500000000"
+      "phone": "971564808748"
     }
   }
 }
