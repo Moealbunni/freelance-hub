@@ -12,6 +12,42 @@
   "excludeKeywords": [
     "senior 10+ years", "clearance required"
   ],
+  "creativeCommunity": {
+    "subreddits": [
+      "forhire", "slavelabour", "freelance", "graphic_design", "VideoEditing",
+      "AfterEffects", "marketing", "DesignJobs", "HungryArtists", "SocialMediaMarketing"
+    ],
+    "requestPhrases": [
+      "looking for a video editor", "need a video editor", "hiring a video editor",
+      "looking for a graphic designer", "need a graphic designer", "hiring a graphic designer",
+      "looking for a motion designer", "need a motion designer",
+      "need someone to edit", "looking for someone to edit",
+      "need ad creative", "looking for ad creative", "need social media content",
+      "looking for a content creator", "need a content creator",
+      "need an animator", "looking for an animator",
+      "need ai video", "looking for ai video", "need ai generated video",
+      "need someone to design", "looking for a designer", "need a designer"
+    ]
+  },
+  "music": {
+    "subreddits": [
+      "WeAreTheMusicMakers", "edmproduction", "trapproduction", "Beatmakers",
+      "musicproduction", "House_Music", "TechHouseMusic", "Techno", "electronicmusic"
+    ],
+    "requestPhrases": [
+      "ghost producer", "ghost production", "looking for a producer",
+      "looking for producer", "need a producer", "want a producer",
+      "hire a producer", "commission a track", "commissioned track",
+      "custom track", "need a beatmaker", "looking for a beatmaker",
+      "need someone to produce", "produce my track", "produce a track for me",
+      "collab on a track", "looking for a ghost", "need a ghostwriter"
+    ],
+    "genres": [
+      "deep house", "tech house", "techno", "melodic techno", "progressive house",
+      "progressive", "indie dance", "afro house", "edm", "house music",
+      "organic house", "melodic house", "electronic music"
+    ]
+  },
   "notifications": {
     "email": {
       "enabled": true,
@@ -22,5 +58,15 @@
       "enabled": true,
       "phone": "971564808748"
     }
+  },
+  "profile": {
+    "name": "Moe Albunni",
+    "pitch": "I'm an AI video and graphic creative based in the UAE, working with businesses across the Gulf and worldwide on AI-generated video, motion graphics, and ad creative. I'd love to help with this project.",
+    "musicPitch": "I'm a professional music producer with releases that have charted, producing across deep house, tech house, techno, melodic techno, progressive, indie dance, and afro house/EDM. I offer ghost production — I build the full track, you own it, no strings attached.",
+    "portfolioUrl": "https://freelance-hub.vercel.app",
+    "musicPortfolioUrl": "https://freelance-hub.vercel.app",
+    "instagramUrl": "https://instagram.com/moii.music",
+    "email": "moe.albunni@gmail.com",
+    "whatsapp": "971564808748"
   }
 }

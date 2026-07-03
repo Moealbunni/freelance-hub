@@ -25,6 +25,19 @@ function saveSeen(seen) {
   fs.writeFileSync(SEEN_PATH, JSON.stringify(seen, null, 2));
 }
 
+const APPS_PATH = path.join(__dirname, "applications.json");
+function loadApps() {
+  if (!fs.existsSync(APPS_PATH)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(APPS_PATH, "utf-8"));
+  } catch {
+    return {};
+  }
+}
+function saveApps(apps) {
+  fs.writeFileSync(APPS_PATH, JSON.stringify(apps, null, 2));
+}
+
 function matchesKeywords(text) {
   const lower = text.toLowerCase();
   const hasExclude = config.excludeKeywords.some((k) => lower.includes(k.toLowerCase()));
@@ -122,6 +135,55 @@ async function fetchWeWorkRemotelyDesign() {
   }
 }
 
+// --- Source: Reddit (public JSON feeds, no key required — reads public posts only) ---
+async function fetchReddit(subreddits) {
+  let all = [];
+  for (const sub of subreddits) {
+    try {
+      const res = await fetch(`https://www.reddit.com/r/${sub}/new.json?limit=25`, {
+        headers: { "User-Agent": "freelance-hub-personal-script/1.0" },
+      });
+      const data = await res.json();
+      const posts = (data.data && data.data.children) || [];
+      all = all.concat(
+        posts.map((p) => ({
+          id: `reddit-${p.data.id}`,
+          title: p.data.title,
+          company: `r/${sub}`,
+          url: `https://reddit.com${p.data.permalink}`,
+          text: `${p.data.title} ${p.data.selftext || ""}`,
+          source: "Reddit",
+        }))
+      );
+    } catch (err) {
+      console.error(`Reddit fetch failed for r/${sub}:`, err.message);
+    }
+  }
+  return all;
+}
+
+function matchesMusic(text) {
+  const lower = text.toLowerCase();
+  const mk = config.music.requestPhrases;
+  const genres = config.music.genres;
+  const hasPhrase = mk.some((k) => lower.includes(k.toLowerCase()));
+  const hasGenreAndIntent =
+    genres.some((g) => lower.includes(g.toLowerCase())) &&
+    (lower.includes("producer") || lower.includes("production") || lower.includes("ghost"));
+  return hasPhrase || hasGenreAndIntent;
+}
+
+function matchesCreativeCommunity(text) {
+  const lower = text.toLowerCase();
+  const hasExclude = config.excludeKeywords.some((k) => lower.includes(k.toLowerCase()));
+  if (hasExclude) return false;
+  const rp = config.creativeCommunity.requestPhrases;
+  const hasPhrase = rp.some((k) => lower.includes(k.toLowerCase()));
+  const isHiringTag = lower.includes("[hiring]") || lower.includes("[ hiring ]");
+  const hasSkillMatch = matchesKeywords(text);
+  return hasPhrase || (isHiringTag && hasSkillMatch);
+}
+
 async function sendEmail(subject, htmlBody) {
   const cfg = config.notifications.email;
   if (!cfg.enabled) return;
@@ -171,32 +233,95 @@ async function sendWhatsApp(text) {
   }
 }
 
+function buildPitch(job) {
+  const p = config.profile;
+  const intro =
+    job.category === "music"
+      ? p.musicPitch || p.pitch
+      : p.pitch;
+  const links =
+    job.category === "music"
+      ? `Music portfolio: ${p.musicPortfolioUrl || p.portfolioUrl}`
+      : `Portfolio: ${p.portfolioUrl}`;
+  return `Hi, my name is ${p.name}.
+
+${intro}
+
+I saw this post ("${job.title}") and wanted to reach out.
+
+${links}
+Instagram: ${p.instagramUrl}
+Email: ${p.email}
+WhatsApp: https://wa.me/${p.whatsapp}
+
+Happy to share more examples or hop on a quick call.
+
+(ref: ${job.id})`;
+}
+
 async function main() {
   const seen = loadSeen();
-  const allJobs = [
+  const apps = loadApps();
+
+  const jobBoardPosts = [
     ...(await fetchRemoteOK()),
     ...(await fetchArbeitnow()),
     ...(await fetchJobicy()),
     ...(await fetchWeWorkRemotelyDesign()),
   ];
+  const musicPosts = await fetchReddit(config.music.subreddits);
+  const creativeCommunityPosts = await fetchReddit(config.creativeCommunity.subreddits);
 
-  const matched = allJobs.filter((j) => matchesKeywords(j.text));
+  const matchedCreative = jobBoardPosts
+    .filter((j) => matchesKeywords(j.text))
+    .map((j) => ({ ...j, category: "creative" }));
+  const matchedCreativeCommunity = creativeCommunityPosts
+    .filter((j) => matchesCreativeCommunity(j.text))
+    .map((j) => ({ ...j, category: "creative" }));
+  const matchedMusic = musicPosts
+    .filter((j) => matchesMusic(j.text))
+    .map((j) => ({ ...j, category: "music" }));
+
+  const matched = [...matchedCreative, ...matchedCreativeCommunity, ...matchedMusic];
   const newJobs = matched.filter((j) => !seen[j.id]);
 
-  console.log(`Fetched ${allJobs.length} total, ${matched.length} matched, ${newJobs.length} new.`);
+  console.log(
+    `Job boards: ${jobBoardPosts.length} checked, ${matchedCreative.length} matched. ` +
+      `Creative communities: ${creativeCommunityPosts.length} checked, ${matchedCreativeCommunity.length} matched. ` +
+      `Music communities: ${musicPosts.length} checked, ${matchedMusic.length} matched. ` +
+      `${newJobs.length} new overall.`
+  );
 
   if (newJobs.length === 0) {
     console.log("No new matches today.");
     return;
   }
 
-  newJobs.forEach((j) => (seen[j.id] = true));
+  newJobs.forEach((j) => {
+    seen[j.id] = true;
+    apps[j.id] = { title: j.title, company: j.company, url: j.url, category: j.category, status: "new", firstSeen: new Date().toISOString() };
+  });
   saveSeen(seen);
+  saveApps(apps);
 
   const htmlList = newJobs
-    .map((j) => `<li><b>${j.title}</b> — ${j.company} (${j.source})<br><a href="${j.url}">${j.url}</a></li>`)
+    .map((j) => {
+      const pitch = buildPitch(j);
+      const mailtoBody = encodeURIComponent(pitch);
+      const mailtoLink = `mailto:?subject=${encodeURIComponent(
+        `Application: ${j.title}`
+      )}&body=${mailtoBody}`;
+      return `<li style="margin-bottom:24px;">
+        <b>${j.title}</b> — ${j.company} (${j.source})<br>
+        <a href="${j.url}">${j.url}</a><br><br>
+        <a href="${mailtoLink}" style="background:#D9A441;color:#0B0F14;padding:8px 14px;text-decoration:none;border-radius:3px;display:inline-block;">Open draft reply in email</a>
+        <details style="margin-top:8px;"><summary>Or copy this pitch</summary><pre style="white-space:pre-wrap;font-family:inherit;">${pitch}</pre></details>
+      </li>`;
+    })
     .join("");
-  const textList = newJobs.map((j) => `• ${j.title} — ${j.company}\n${j.url}`).join("\n\n");
+  const textList = newJobs
+    .map((j) => `• ${j.title} — ${j.company}\n${j.url}\n\nSuggested reply:\n${buildPitch(j)}`)
+    .join("\n\n---\n\n");
 
   await sendEmail(
     `${newJobs.length} new job match${newJobs.length > 1 ? "es" : ""} today`,

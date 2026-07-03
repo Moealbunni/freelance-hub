@@ -1,0 +1,28 @@
+name: Weekly Summary
+
+on:
+  schedule:
+    # Runs 08:00 UTC every Monday (~12pm UAE time)
+    - cron: "0 8 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  weekly-summary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run weekly summary
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          CALLMEBOT_APIKEY: ${{ secrets.CALLMEBOT_APIKEY }}
+        run: node aggregator/weekly-summary.js
