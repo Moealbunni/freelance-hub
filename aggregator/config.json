@@ -1,0 +1,20 @@
+{
+  "keywords": [
+    "dubai", "uae", "abu dhabi", "gulf", "qatar", "saudi", "bahrain", "kuwait", "oman",
+    "middle east", "ai", "automation", "chatbot", "llm", "machine learning", "freelance"
+  ],
+  "excludeKeywords": [
+    "senior 10+ years", "clearance required"
+  ],
+  "notifications": {
+    "email": {
+      "enabled": true,
+      "fromAddress": "onboarding@resend.dev",
+      "toAddress": "you@example.com"
+    },
+    "whatsapp": {
+      "enabled": true,
+      "phone": "971500000000"
+    }
+  }
+}
