@@ -425,15 +425,19 @@ async function main() {
     })
     .join("");
   const textList = newJobs
-    .map((j) => `• ${j.title} — ${j.company}\n${j.url}\n\nSuggested reply:\n${buildPitch(j)}`)
-    .join("\n\n---\n\n");
+    .map((j) => `• ${j.title} — ${j.company} (${j.category})\n${j.url}\n(ref: ${j.id})`)
+    .join("\n\n");
+  let whatsappMessage = `${newJobs.length} new match(es) today:\n\n${textList}\n\nFull drafted replies are in your email.`;
+  if (whatsappMessage.length > 1200) {
+    whatsappMessage = whatsappMessage.slice(0, 1150) + "\n\n(list truncated — see email for the rest)";
+  }
 
   await sendEmail(
     `${newJobs.length} new job match${newJobs.length > 1 ? "es" : ""} today`,
     `<h2>New matches</h2><ul>${htmlList}</ul>`
   );
 
-  await sendWhatsApp(`${newJobs.length} new job match(es) today:\n\n${textList}`);
+  await sendWhatsApp(whatsappMessage);
 }
 
 main();
