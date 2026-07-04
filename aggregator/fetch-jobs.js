@@ -140,9 +140,18 @@ async function fetchReddit(subreddits) {
   let all = [];
   for (const sub of subreddits) {
     try {
-      const res = await fetch(`https://www.reddit.com/r/${sub}/new.json?limit=25`, {
-        headers: { "User-Agent": "freelance-hub-personal-script/1.0" },
+      const res = await fetch(`https://old.reddit.com/r/${sub}/new.json?limit=25`, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+          Accept: "application/json",
+        },
       });
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("json")) {
+        console.error(`Reddit r/${sub}: got non-JSON response (likely blocked), skipping.`);
+        continue;
+      }
       const data = await res.json();
       const posts = (data.data && data.data.children) || [];
       all = all.concat(
