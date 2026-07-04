@@ -135,6 +135,99 @@ async function fetchWeWorkRemotelyDesign() {
   }
 }
 
+// --- Source: Remotive (public JSON API, no key required) ---
+async function fetchRemotive() {
+  try {
+    const res = await fetch("https://remotive.com/api/remote-jobs");
+    const data = await res.json();
+    return (data.jobs || []).map((j) => ({
+      id: `remotive-${j.id}`,
+      title: j.title,
+      company: j.company_name || "Unknown",
+      url: j.url,
+      text: `${j.title} ${j.company_name} ${j.category || ""} ${j.tags ? j.tags.join(" ") : ""} ${j.candidate_required_location || ""}`,
+      source: "Remotive",
+    }));
+  } catch (err) {
+    console.error("Remotive fetch failed:", err.message);
+    return [];
+  }
+}
+
+// --- Source: Working Nomads (public RSS feed, no key required) ---
+async function fetchWorkingNomads() {
+  try {
+    const res = await fetch("https://www.workingnomads.com/jobsRSS");
+    const xml = await res.text();
+    const items = xml.split("<item>").slice(1);
+    return items.map((item, i) => {
+      const title = (item.match(/<title>([\s\S]*?)<\/title>/) || [, "Untitled"])[1]
+        .replace("<![CDATA[", "")
+        .replace("]]>", "")
+        .trim();
+      const link = (item.match(/<link>([\s\S]*?)<\/link>/) || [, ""])[1].trim();
+      const description = (item.match(/<description>([\s\S]*?)<\/description>/) || [, ""])[1]
+        .replace("<![CDATA[", "")
+        .replace("]]>", "")
+        .trim();
+      return {
+        id: `workingnomads-${link || i}`,
+        title,
+        company: "Working Nomads listing",
+        url: link,
+        text: `${title} ${description}`,
+        source: "Working Nomads",
+      };
+    });
+  } catch (err) {
+    console.error("Working Nomads fetch failed:", err.message);
+    return [];
+  }
+}
+
+// --- Source: Hacker News "Who is Hiring" (official public API, no key required) ---
+async function fetchHackerNewsWhoIsHiring() {
+  try {
+    // Find the most recent "Who is hiring" thread via HN's public search API
+    const searchRes = await fetch(
+      "https://hn.algolia.com/api/v1/search_by_date?tags=story,author_whoishiring&query=Who%20is%20Hiring"
+    );
+    const searchData = await searchRes.json();
+    const thread = (searchData.hits || [])[0];
+    if (!thread) return [];
+
+    // Fetch the thread's top-level comments (each comment = one job posting)
+    const itemRes = await fetch(`https://hacker-news.firebaseio.com/v0/item/${thread.objectID}.json`);
+    const itemData = await itemRes.json();
+    const commentIds = (itemData.kids || []).slice(0, 200); // cap for speed
+
+    const comments = await Promise.all(
+      commentIds.map(async (id) => {
+        try {
+          const res = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
+          return await res.json();
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    return comments
+      .filter((c) => c && c.text && !c.deleted)
+      .map((c) => ({
+        id: `hn-${c.id}`,
+        title: (c.text.replace(/<[^>]*>/g, " ").slice(0, 100) || "HN hiring post").trim(),
+        company: "HN Who is Hiring",
+        url: `https://news.ycombinator.com/item?id=${c.id}`,
+        text: c.text.replace(/<[^>]*>/g, " "),
+        source: "Hacker News",
+      }));
+  } catch (err) {
+    console.error("Hacker News fetch failed:", err.message);
+    return [];
+  }
+}
+
 // --- Source: Reddit (public JSON feeds, no key required — reads public posts only) ---
 async function fetchReddit(subreddits) {
   let all = [];
@@ -277,9 +370,12 @@ async function main() {
     ...(await fetchArbeitnow()),
     ...(await fetchJobicy()),
     ...(await fetchWeWorkRemotelyDesign()),
+    ...(await fetchRemotive()),
+    ...(await fetchWorkingNomads()),
+    ...(await fetchHackerNewsWhoIsHiring()),
   ];
-  const musicPosts = await fetchReddit(config.music.subreddits);
-  const creativeCommunityPosts = await fetchReddit(config.creativeCommunity.subreddits);
+  const musicPosts = []; // Reddit disabled — see note below main()
+  const creativeCommunityPosts = []; // Reddit disabled — see note below main()
 
   const matchedCreative = jobBoardPosts
     .filter((j) => matchesKeywords(j.text))
@@ -341,3 +437,15 @@ async function main() {
 }
 
 main();
+
+// Note: Reddit sources (music production requests, r/forhire, etc.) are
+// disabled above. Reddit now requires applying for and being granted
+// approval before issuing API access — it's no longer self-serve — so
+// reliable automated access isn't practical here. The matching functions
+// (matchesMusic, matchesCreativeCommunity) and fetchReddit() are left in
+// place in case that changes or you get approved later; just restore the
+// two lines above main() to re-enable them.
+//
+// In the meantime, worth manually checking every few days:
+//   Music: reddit.com/r/WeAreTheMusicMakers, r/edmproduction, r/Techno, r/House_Music
+//   Creative work: reddit.com/r/forhire, r/slavelabour, r/freelance
