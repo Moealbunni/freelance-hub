@@ -1,41 +1,36 @@
 name: Daily Job Alert
-
 on:
   schedule:
     # Runs at 06:00 UTC daily (~10am UAE time). Edit the cron to change timing.
     - cron: "0 6 * * *"
   workflow_dispatch: {} # lets you trigger it manually from the Actions tab
-
 concurrency:
   group: job-alert-bot
   cancel-in-progress: false
-
 permissions:
   contents: write
-
 jobs:
   fetch-jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
+      - name: Sync latest before running
+        run: git pull origin main --rebase --autostash
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Run job aggregator
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           CALLMEBOT_APIKEY: ${{ secrets.CALLMEBOT_APIKEY }}
         run: node aggregator/fetch-jobs.js
-
       - name: Commit and push
-         run: |
-    git config user.name "job-alert-bot"
-    git config user.email "job-alert-bot@users.noreply.github.com"
-    git add aggregator/seen-jobs.json aggregator/applications.json
-    git commit -m "Update seen jobs [skip ci]" || echo "Nothing to commit"
-    git pull origin main --rebase --autostash
-    git push origin main
+        run: |
+          git config user.name "job-alert-bot"
+          git config user.email "job-alert-bot@users.noreply.github.com"
+          git add aggregator/seen-jobs.json aggregator/applications.json
+          git commit -m "Update seen jobs [skip ci]" || echo "Nothing to commit"
+          git pull origin main --rebase --autostash
+          git push origin main
