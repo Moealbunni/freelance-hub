@@ -12,6 +12,17 @@
   "excludeKeywords": [
     "senior 10+ years", "clearance required"
   ],
+  "gcc": {
+    "priorityKeywords": [
+      "UAE", "U.A.E", "United Arab Emirates", "Dubai", "Abu Dhabi", "Sharjah", "Ajman",
+      "Saudi Arabia", "KSA", "Riyadh", "Jeddah", "Dammam",
+      "Qatar", "Doha",
+      "Kuwait", "Kuwait City",
+      "Bahrain", "Manama",
+      "Oman", "Muscat",
+      "GCC", "Gulf region", "Middle East"
+    ]
+  },
   "creativeCommunity": {
     "subreddits": [
       "forhire", "slavelabour", "freelance", "graphic_design", "VideoEditing",

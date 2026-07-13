@@ -45,6 +45,15 @@ function matchesKeywords(text) {
   return config.keywords.some((k) => lower.includes(k.toLowerCase()));
 }
 
+// Checks whether a job's text mentions a GCC country/city so we can
+// prioritize it in the digest. Worldwide remote jobs still come through
+// as backup — this just flags and sorts, it doesn't filter anything out.
+function isGCC(text) {
+  const lower = text.toLowerCase();
+  const gccKeywords = (config.gcc && config.gcc.priorityKeywords) || [];
+  return gccKeywords.some((k) => lower.includes(k.toLowerCase()));
+}
+
 // --- Source: RemoteOK (public JSON API, no key required) ---
 async function fetchRemoteOK() {
   try {
@@ -228,7 +237,7 @@ async function fetchHackerNewsWhoIsHiring() {
   }
 }
 
-// --- Source: Reddit (public JSON feeds, no key required — reads public posts only) ---
+// --- Source: Reddit (public JSON feeds, no key required â€” reads public posts only) ---
 async function fetchReddit(subreddits) {
   let all = [];
   for (const sub of subreddits) {
@@ -361,6 +370,20 @@ Happy to share more examples or hop on a quick call.
 (ref: ${job.id})`;
 }
 
+function renderJobListItem(j) {
+  const pitch = buildPitch(j);
+  const mailtoBody = encodeURIComponent(pitch);
+  const mailtoLink = `mailto:?subject=${encodeURIComponent(
+    `Application: ${j.title}`
+  )}&body=${mailtoBody}`;
+  return `<li style="margin-bottom:24px;">
+    <b>${j.title}</b> â€” ${j.company} (${j.source})<br>
+    <a href="${j.url}">${j.url}</a><br><br>
+    <a href="${mailtoLink}" style="background:#D9A441;color:#0B0F14;padding:8px 14px;text-decoration:none;border-radius:3px;display:inline-block;">Open draft reply in email</a>
+    <details style="margin-top:8px;"><summary>Or copy this pitch</summary><pre style="white-space:pre-wrap;font-family:inherit;">${pitch}</pre></details>
+  </li>`;
+}
+
 async function main() {
   const seen = loadSeen();
   const apps = loadApps();
@@ -374,8 +397,8 @@ async function main() {
     ...(await fetchWorkingNomads()),
     ...(await fetchHackerNewsWhoIsHiring()),
   ];
-  const musicPosts = []; // Reddit disabled — see note below main()
-  const creativeCommunityPosts = []; // Reddit disabled — see note below main()
+  const musicPosts = []; // Reddit disabled â€” see note below main()
+  const creativeCommunityPosts = []; // Reddit disabled â€” see note below main()
 
   const matchedCreative = jobBoardPosts
     .filter((j) => matchesKeywords(j.text))
@@ -387,14 +410,29 @@ async function main() {
     .filter((j) => matchesMusic(j.text))
     .map((j) => ({ ...j, category: "music" }));
 
-  const matched = [...matchedCreative, ...matchedCreativeCommunity, ...matchedMusic];
+  let matched = [...matchedCreative, ...matchedCreativeCommunity, ...matchedMusic];
+
+  // Tag every matched job with its region so GCC listings can be
+  // surfaced first. Worldwide remote jobs are NOT dropped â€” they still
+  // come through as backup, just sorted below the GCC section.
+  matched = matched.map((j) => ({ ...j, region: isGCC(j.text) ? "GCC" : "Worldwide" }));
+
   const newJobs = matched.filter((j) => !seen[j.id]);
+
+  // Sort so GCC matches always appear first in the digest.
+  newJobs.sort((a, b) => {
+    if (a.region === b.region) return 0;
+    return a.region === "GCC" ? -1 : 1;
+  });
+
+  const gccCount = newJobs.filter((j) => j.region === "GCC").length;
+  const worldwideCount = newJobs.length - gccCount;
 
   console.log(
     `Job boards: ${jobBoardPosts.length} checked, ${matchedCreative.length} matched. ` +
       `Creative communities: ${creativeCommunityPosts.length} checked, ${matchedCreativeCommunity.length} matched. ` +
       `Music communities: ${musicPosts.length} checked, ${matchedMusic.length} matched. ` +
-      `${newJobs.length} new overall.`
+      `${newJobs.length} new overall (${gccCount} GCC, ${worldwideCount} worldwide).`
   );
 
   if (newJobs.length === 0) {
@@ -404,37 +442,57 @@ async function main() {
 
   newJobs.forEach((j) => {
     seen[j.id] = true;
-    apps[j.id] = { title: j.title, company: j.company, url: j.url, category: j.category, status: "new", firstSeen: new Date().toISOString() };
+    apps[j.id] = {
+      title: j.title,
+      company: j.company,
+      url: j.url,
+      category: j.category,
+      region: j.region,
+      status: "new",
+      firstSeen: new Date().toISOString(),
+    };
   });
   saveSeen(seen);
   saveApps(apps);
 
-  const htmlList = newJobs
-    .map((j) => {
-      const pitch = buildPitch(j);
-      const mailtoBody = encodeURIComponent(pitch);
-      const mailtoLink = `mailto:?subject=${encodeURIComponent(
-        `Application: ${j.title}`
-      )}&body=${mailtoBody}`;
-      return `<li style="margin-bottom:24px;">
-        <b>${j.title}</b> — ${j.company} (${j.source})<br>
-        <a href="${j.url}">${j.url}</a><br><br>
-        <a href="${mailtoLink}" style="background:#D9A441;color:#0B0F14;padding:8px 14px;text-decoration:none;border-radius:3px;display:inline-block;">Open draft reply in email</a>
-        <details style="margin-top:8px;"><summary>Or copy this pitch</summary><pre style="white-space:pre-wrap;font-family:inherit;">${pitch}</pre></details>
-      </li>`;
-    })
-    .join("");
-  const textList = newJobs
-    .map((j) => `• ${j.title} — ${j.company} (${j.category})\n${j.url}\n(ref: ${j.id})`)
+  const gccJobs = newJobs.filter((j) => j.region === "GCC");
+  const worldwideJobs = newJobs.filter((j) => j.region === "Worldwide");
+
+  let htmlBody = "";
+  if (gccJobs.length > 0) {
+    htmlBody += `<h2>🇦🇪 GCC matches (${gccJobs.length})</h2><ul>${gccJobs
+      .map(renderJobListItem)
+      .join("")}</ul>`;
+  }
+  if (worldwideJobs.length > 0) {
+    htmlBody += `<h2>🌍 Worldwide remote (backup) (${worldwideJobs.length})</h2><ul>${worldwideJobs
+      .map(renderJobListItem)
+      .join("")}</ul>`;
+  }
+
+  const gccTextList = gccJobs
+    .map((j) => `â€¢ ${j.title} â€” ${j.company} (${j.category})\n${j.url}\n(ref: ${j.id})`)
     .join("\n\n");
-  let whatsappMessage = `${newJobs.length} new match(es) today:\n\n${textList}\n\nFull drafted replies are in your email.`;
+  const worldwideTextList = worldwideJobs
+    .map((j) => `â€¢ ${j.title} â€” ${j.company} (${j.category})\n${j.url}\n(ref: ${j.id})`)
+    .join("\n\n");
+
+  let whatsappMessage = `${newJobs.length} new match(es) today (${gccCount} GCC, ${worldwideCount} worldwide):\n\n`;
+  if (gccJobs.length > 0) {
+    whatsappMessage += `🇦🇪 GCC:\n${gccTextList}\n\n`;
+  }
+  if (worldwideJobs.length > 0) {
+    whatsappMessage += `🌍 Worldwide (backup):\n${worldwideTextList}\n\n`;
+  }
+  whatsappMessage += `Full drafted replies are in your email.`;
+
   if (whatsappMessage.length > 1200) {
-    whatsappMessage = whatsappMessage.slice(0, 1150) + "\n\n(list truncated — see email for the rest)";
+    whatsappMessage = whatsappMessage.slice(0, 1150) + "\n\n(list truncated â€” see email for the rest)";
   }
 
   await sendEmail(
-    `${newJobs.length} new job match${newJobs.length > 1 ? "es" : ""} today`,
-    `<h2>New matches</h2><ul>${htmlList}</ul>`
+    `${newJobs.length} new job match${newJobs.length > 1 ? "es" : ""} today (${gccCount} GCC)`,
+    htmlBody
   );
 
   await sendWhatsApp(whatsappMessage);
@@ -444,7 +502,7 @@ main();
 
 // Note: Reddit sources (music production requests, r/forhire, etc.) are
 // disabled above. Reddit now requires applying for and being granted
-// approval before issuing API access — it's no longer self-serve — so
+// approval before issuing API access â€” it's no longer self-serve â€” so
 // reliable automated access isn't practical here. The matching functions
 // (matchesMusic, matchesCreativeCommunity) and fetchReddit() are left in
 // place in case that changes or you get approved later; just restore the
