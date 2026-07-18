@@ -533,8 +533,9 @@
     "company": "Truelogic",
     "url": "https://jobicy.com/jobs/149177-graphic-designer-marketing",
     "category": "creative",
+    "region": "Worldwide",
     "status": "new",
-    "firstSeen": "2026-07-12T10:59:49.414Z"
+    "firstSeen": "2026-07-18T10:46:47.453Z"
   },
   "jobicy-149174": {
     "title": "Salesforce Marketing Cloud (SFMC) CRM Operations Specialist - Advertising",
@@ -1036,5 +1037,23 @@
     "region": "Worldwide",
     "status": "new",
     "firstSeen": "2026-07-17T11:09:56.827Z"
+  },
+  "remoteok-1134925": {
+    "title": "Graphic Designer",
+    "company": "YouFibre",
+    "url": "https://remoteOK.com/remote-jobs/remote-graphic-designer-youfibre-1134925",
+    "category": "creative",
+    "region": "Worldwide",
+    "status": "new",
+    "firstSeen": "2026-07-18T10:46:47.453Z"
+  },
+  "arbeitnow-werkstudent-social-media-essen-5152": {
+    "title": "Werkstudent (m/w/d) Social Media",
+    "company": "buesken strategy & consulting",
+    "url": "https://www.arbeitnow.com/jobs/companies/buesken-strategy-consulting/werkstudent-social-media-essen-5152",
+    "category": "creative",
+    "region": "Worldwide",
+    "status": "new",
+    "firstSeen": "2026-07-18T10:46:47.453Z"
   }
 }
