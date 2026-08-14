@@ -542,8 +542,9 @@
     "company": "Truelogic",
     "url": "https://jobicy.com/jobs/149174-salesforce-marketing-cloud-sfmc-crm-operations-specialist-advertising",
     "category": "creative",
+    "region": "Worldwide",
     "status": "new",
-    "firstSeen": "2026-07-12T10:59:49.414Z"
+    "firstSeen": "2026-08-14T07:10:14.118Z"
   },
   "jobicy-149156": {
     "title": "Senior Full-stack Engineer (Python/React) - Advertising",
@@ -2423,5 +2424,41 @@
     "region": "Worldwide",
     "status": "new",
     "firstSeen": "2026-08-13T07:13:51.251Z"
+  },
+  "arbeitnow-senior-performance-marketing-manager-munchen-176081": {
+    "title": "Senior Performance Marketing Manager (m/w/d)",
+    "company": "Yfoodlabs",
+    "url": "https://www.arbeitnow.com/jobs/companies/yfoodlabs/senior-performance-marketing-manager-munchen-176081",
+    "category": "creative",
+    "region": "Worldwide",
+    "status": "new",
+    "firstSeen": "2026-08-14T07:10:14.118Z"
+  },
+  "arbeitnow-werkstudent-social-media-content-creation-obertshausen-426980": {
+    "title": "Werkstudent (w/m/d) Social Media & Content Creation",
+    "company": "Holzland Becker",
+    "url": "https://www.arbeitnow.com/jobs/companies/holzland-becker/werkstudent-social-media-content-creation-obertshausen-426980",
+    "category": "creative",
+    "region": "Worldwide",
+    "status": "new",
+    "firstSeen": "2026-08-14T07:10:14.118Z"
+  },
+  "arbeitnow-digital-advertising-sponsorship-sales-executive-london-269162": {
+    "title": "Digital & Advertising Sponsorship Sales Executive",
+    "company": "Pmmalliance",
+    "url": "https://www.arbeitnow.co.uk/jobs/companies/pmmalliance/digital-advertising-sponsorship-sales-executive-london-269162",
+    "category": "creative",
+    "region": "Worldwide",
+    "status": "new",
+    "firstSeen": "2026-08-14T07:10:14.118Z"
+  },
+  "hn-49284614": {
+    "title": "Stream | Multiple Positions | Amsterdam (NL), Skopje (North Macedonia)|Full Time | Visa Sponsorship",
+    "company": "HN Who is Hiring",
+    "url": "https://news.ycombinator.com/item?id=49284614",
+    "category": "creative",
+    "region": "Worldwide",
+    "status": "new",
+    "firstSeen": "2026-08-14T07:10:14.118Z"
   }
 }
